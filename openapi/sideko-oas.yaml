@@ -1,0 +1,4046 @@
+openapi: 3.1.0
+info:
+  title: Sideko REST API
+  description: The Sideko API unlocks features including generating SDKs, setting up API Specifications with mock servers, creating documentation projects with generated API references and custom pages, managing roles and permissions, and more.
+  version: "0.1.0"
+servers:
+  - url: https://api.sideko.dev/v1
+    x-sideko-name: Production
+    x-sideko-default: true
+security:
+  - CookieAuth: []
+  - ApiKeyAuth: []
+tags:
+  - name: API Links
+  - name: API Specification Management
+  - name: Auth
+  - name: Documentation Projects
+  - name: Organization
+  - name: SDK Generation
+  - name: Users
+
+x-sideko:
+  docs:
+    hiddenOperationIds:
+      [
+        "cli_check_updates",
+        "health_check",
+        "ping_check",
+        "login_callback",
+        "login_url",
+        "exchange_code_for_key",
+        "vercel_webhook",
+        "check_preview",
+      ]
+  sdks:
+    hiddenOperationIds:
+      rust: ["health_check", "ping_check", "vercel_webhook", "check_preview"]
+      typescript:
+        [
+          "cli_check_updates",
+          "health_check",
+          "ping_check",
+          "vercel_webhook",
+          "stateless_generate_sdk",
+        ]
+      default: ["health_check", "ping_check", "vercel_webhook"]
+
+paths:
+  # CLI Specific
+  /cli/updates/{cli_version}:
+    parameters:
+      - name: cli_version
+        required: true
+        in: path
+        schema:
+          type: string
+          description: semver of running cli
+          example: "0.1.0"
+
+    get:
+      summary: Checks if current CLI has updates
+      operationId: cli_check_updates
+      x-sideko-module: cli
+      x-sideko-function-name: check_updates
+      security: []
+      responses:
+        "200":
+          description: List of updates at different levels available for cli
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CliUpdate"
+        default:
+          description: Unsuccessful Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  # Server status
+  /_health:
+    get:
+      summary: Health Check
+      operationId: health_check
+      x-sideko-module: health
+      x-sideko-function-name: check
+      responses:
+        "200":
+          description: Check if the service is up and running.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - "ok"
+                properties:
+                  ok:
+                    type: boolean
+  /_ping:
+    get:
+      summary: Ping Check
+      security: []
+      operationId: ping_check
+      x-sideko-module: health
+      x-sideko-function-name: ping
+      responses:
+        "200":
+          description: Check if the service is up and running.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - "ok"
+                properties:
+                  ok:
+                    type: boolean
+
+  # Roles
+  /role:
+    get:
+      tags:
+        - Roles
+      operationId: list_roles
+      x-sideko-module: role
+      x-sideko-function-name: list
+      summary: List roles
+      parameters:
+        - name: user_id
+          in: query
+          required: false
+          schema:
+            type: string
+            description: filter roles by user id
+            format: uuid
+        - name: object_id
+          in: query
+          required: false
+          schema:
+            description: filter roles by object id
+            type: string
+            format: uuid
+        - name: object_type
+          in: query
+          required: false
+          schema:
+            description: filter roles by object_type
+            $ref: "#/components/schemas/ObjectType"
+      responses:
+        "200":
+          description: Roles attached to queried object
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Role"
+        default:
+          description: Unsuccessful Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    post:
+      tags:
+        - Roles
+      operationId: create_role
+      x-sideko-module: role
+      x-sideko-function-name: create
+      summary: Create a new role
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NewRole"
+      responses:
+        "201":
+          description: Role created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Role"
+        default:
+          description: Unsuccessful Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /role/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    delete:
+      tags:
+        - Roles
+      operationId: delete_role
+      x-sideko-module: role
+      x-sideko-function-name: delete
+      summary: Delete role and all associated permissions
+      responses:
+        "204":
+          description: Role deleted
+        default:
+          description: Unsuccessful Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  # API Specification Management
+  /api:
+    get:
+      tags:
+        - API Specification Management
+      summary: List your APIs
+      operationId: list_apis
+      x-sideko-module: api
+      x-sideko-function-name: list
+      responses:
+        "200":
+          description: List of your APIs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Api"
+        default:
+          description: Unsuccessful Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    post:
+      tags:
+        - API Specification Management
+      summary: Create a new API
+      operationId: create_api
+      x-sideko-module: api
+      x-sideko-function-name: create
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NewApi"
+      responses:
+        "201":
+          description: API created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Api"
+        default:
+          description: Unsuccessful Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/init:
+    post:
+      tags:
+        - API Specification Management
+      summary: Create an API with an initial version
+      operationId: new_api_init
+      x-sideko-module: api
+      x-sideko-function-name: init
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              description: "tar.gz file containing the contents of the .git/ folder in the existing SDK repository"
+              $ref: "#/components/schemas/NewApiWithVersion"
+      responses:
+        "201":
+          description: API created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiSpec"
+        default:
+          description: Unsuccessful Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/{api_name}:
+    parameters:
+      - name: api_name
+        in: path
+        required: true
+        schema:
+          $ref: "#/components/schemas/ProjectName"
+    get:
+      tags:
+        - API Specification Management
+      summary: Get one API
+      operationId: get_api
+      x-sideko-module: api
+      x-sideko-function-name: get
+      responses:
+        "200":
+          description: Details of an API Specification
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Api"
+        default:
+          description: Unsuccessful Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+    patch:
+      tags:
+        - API Specification Management
+      summary: Update an existing API
+      operationId: update_api_spec_collection
+      x-sideko-module: api
+      x-sideko-function-name: patch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateApi"
+      responses:
+        "200":
+          description: API Specification updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Api"
+        default:
+          description: Unsuccessful Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+    delete:
+      tags:
+        - API Specification Management
+      summary: Delete an API
+      operationId: delete_api
+      x-sideko-module: api
+      x-sideko-function-name: delete
+      responses:
+        "204":
+          description: API Specification deleted
+        default:
+          description: Unsuccessful Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  # API Specification Version
+  /api/{api_name}/spec:
+    parameters:
+      - name: api_name
+        in: path
+        required: true
+        schema:
+          $ref: "#/components/schemas/ProjectName"
+    get:
+      tags:
+        - API Specification Management
+      summary: List specs of a collection
+      operationId: list_api_specs
+      x-sideko-module: api.spec
+      x-sideko-function-name: list
+      responses:
+        "200":
+          description: List of API Specs for a given collection
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ApiSpec"
+        default:
+          description: Unsuccessful Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    post:
+      tags:
+        - API Specification Management
+      summary: Add a new API specification
+      operationId: new_specification
+      x-sideko-module: api.spec
+      x-sideko-function-name: create
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              description: "tar.gz file containing the contents of the .git/ folder in the existing SDK repository"
+              $ref: "#/components/schemas/NewApiSpec"
+      responses:
+        "201":
+          description: Version created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiSpec"
+        default:
+          description: Unsuccessful Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/{api_name}/spec/{api_version}:
+    parameters:
+      - name: api_name
+        in: path
+        required: true
+        schema:
+          $ref: "#/components/schemas/ProjectName"
+      - name: api_version
+        in: path
+        required: true
+        schema:
+          $ref: "#/components/schemas/ApiVersion"
+    get:
+      tags:
+        - API Specification Management
+      summary: Get API specification metadata
+      operationId: get_specification_metadata
+      x-sideko-module: api.spec
+      x-sideko-function-name: get
+      responses:
+        "200":
+          description: Details of an API Specification version
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiSpec"
+        default:
+          description: Unsuccessful Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    patch:
+      tags:
+        - API Specification Management
+      summary: Update an API Specification and/or metadata
+      operationId: update_specification
+      x-sideko-module: api.spec
+      x-sideko-function-name: patch
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: "#/components/schemas/UpdateApiSpec"
+      responses:
+        "200":
+          description: Details of an API Specification version
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiSpec"
+        default:
+          description: Unsuccessful Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    delete:
+      tags:
+        - API Specification Management
+      summary: Delete an API Specification and it's associated metadata
+      operationId: delete_specification
+      x-sideko-module: api.spec
+      x-sideko-function-name: delete
+      responses:
+        "204":
+          description: Successful deletion
+        default:
+          description: Unsuccessful Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/{api_name}/spec/{api_version}/openapi:
+    parameters:
+      - name: api_name
+        in: path
+        required: true
+        schema:
+          $ref: "#/components/schemas/ProjectName"
+      - name: api_version
+        in: path
+        required: true
+        schema:
+          $ref: "#/components/schemas/ApiVersion"
+    get:
+      tags:
+        - API Specification Management
+      summary: Get OpenAPI specification
+      operationId: get_api_spec_openapi
+      x-sideko-module: api.spec
+      x-sideko-function-name: get_openapi
+      responses:
+        "200":
+          description: OpenAPI Specification as JSON and OAS metadata
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/OpenAPI"
+        default:
+          description: Unsuccessful Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/{api_name}/spec/{api_version}/stats:
+    parameters:
+      - name: api_name
+        in: path
+        required: true
+        schema:
+          $ref: "#/components/schemas/ProjectName"
+      - name: api_version
+        in: path
+        required: true
+        schema:
+          $ref: "#/components/schemas/ApiVersion"
+    get:
+      tags:
+        - API Specification Management
+      summary: Get Stats about the specification
+      operationId: get_api_spec_stats
+      x-sideko-module: api.spec
+      x-sideko-function-name: get_stats
+      responses:
+        "200":
+          description: OpenAPI Stats Data
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ApiSpecStats"
+        default:
+          description: Unsuccessful Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /lint:
+    post:
+      tags:
+        - API Specification Management
+      summary: Lint an OpenAPI spec
+      operationId: lint_api_spec
+      x-sideko-module: lint
+      x-sideko-function-name: run
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: "#/components/schemas/NewLint"
+      responses:
+        "200":
+          description: Linting report
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LintReport"
+        default:
+          description: Unsuccessful Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /sdk:
+    get:
+      tags:
+        - SDK Generation
+      operationId: list_sdks
+      x-sideko-module: sdk
+      x-sideko-function-name: list
+      summary: List all managed SDKs
+      parameters:
+        - name: api_name
+          in: query
+          required: false
+          description: Filter by API name or ID (uuid)
+          schema:
+            $ref: "#/components/schemas/ProjectName"
+        - name: successful
+          in: query
+          required: false
+          description: Filter by SDK generation success
+          schema:
+            type: boolean
+      responses:
+        "200":
+          description: SDK generations matching query
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SdkGeneration"
+        default:
+          description: Unsuccessful Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    post:
+      tags:
+        - SDK Generation
+      operationId: generate_sdk
+      x-sideko-module: sdk
+      x-sideko-function-name: generate
+      summary: Generate a new managed SDK from a Sideko configuration file
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: "#/components/schemas/NewSdk"
+      responses:
+        "201":
+          description: Generated sdk codebase compressed as .tar.gz
+          content:
+            application/tar+gzip:
+              schema:
+                type: string
+                format: binary
+        default:
+          description: Unsuccessful Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /sdk/update:
+    post:
+      tags:
+        - SDK Generation
+      operationId: update_sdk
+      x-sideko-module: sdk
+      x-sideko-function-name: update
+      summary: Update an SDK to reflect the latest state of the API
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: "#/components/schemas/UpdateSdk"
+      responses:
+        "201":
+          description: Generate a git patch file to update your SDK. The response is a text file.
+          content:
+            text/x-patch:
+              schema:
+                type: string
+                example: >
+                  From 3a2b1c4d5e6f7890 Mon Sep 17 00:00:00 2001
+                  From: Sideko Engineer <team@sideko.dev>
+                  Date: Tue, 21 Jan 2025 09:15:00 -0800
+                  Subject: [PATCH] Add retry mechanism with exponential backoff
+
+                  Add robust retry handling for API requests with exponential backoff.
+                  Includes comprehensive type hints and error handling.
+
+                  diff --git a/sdk/client.py b/sdk/client.py
+                  index 1234567..89abcdef 100644
+                  --- a/sdk/client.py
+                  +++ b/sdk/client.py
+                  @@ -1,8 +1,42 @@
+                  -from typing import Any, Dict, Optional
+                  +from typing import Any, Dict, Optional, TypeVar
+                  from time import sleep
+                  +from functools import wraps
+
+                  -class APIClient:
+                  -    def make_request(self, endpoint: str, data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+                  -        response = self._send_request(endpoint, data)
+                  -        return response.json()
+                  +T = TypeVar('T')
+
+        default:
+          description: Unsuccessful Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /sdk/{sdk_id}/doc:
+    post:
+      tags:
+        - SDK Generation
+      summary: Retrieve SDK documentation
+      description: Get documentation for a specific SDK
+      operationId: get_sdk_docs
+      parameters:
+        - name: sdk_id
+          in: path
+          required: true
+          description: The SDK ID to get documentation for
+          schema:
+            type: string
+            example: h1jasdf123
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SdkDocRequest'
+      responses:
+        '200':
+          description: Successfully retrieved SDK documentation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SdkDocResponse'
+        default:
+          description: Unsuccessful Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+ 
+  /sdk/config/init:
+    post:
+      tags:
+        - SDK Generation
+      operationId: init_sdk_config
+      x-sideko-module: sdk.config
+      x-sideko-function-name: init
+      summary: Initialize an SDK configuration with all defaults applied
+      description: Creates a sdk config with default configurations for the api/api version
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InitSdkConfig"
+      responses:
+        "200":
+          description: New SDK configuration in .yaml format
+          content:
+            application/yaml:
+              schema:
+                $ref: "#/components/schemas/SdkConfig"
+        default:
+          description: Unsuccessful Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /sdk/config/sync:
+    post:
+      tags:
+        - SDK Generation
+      operationId: sync_sdk_config
+      x-sideko-module: sdk.config
+      x-sideko-function-name: sync
+      summary: Sync an SDK configuration with the latest state of the API
+      description: Updates provided config with missing default configurations for the api version
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: "#/components/schemas/SyncSdkConfig"
+      responses:
+        "200":
+          description: New SDK configuration in .yaml format
+          content:
+            application/yaml:
+              schema:
+                $ref: "#/components/schemas/SdkConfig"
+        default:
+          description: Unsuccessful Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  # Documentation Project
+  /doc_project:
+    get:
+      tags:
+        - Documentation Projects
+      summary: List Documentation Projects
+      operationId: list_doc_projects
+      x-sideko-module: doc
+      x-sideko-function-name: list
+      responses:
+        "200":
+          description: List of documentation projects you have access to
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DocProject"
+        default:
+          description: Unsuccessful Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    post:
+      tags:
+        - Documentation Projects
+      summary: Create a new Documentation Project
+      operationId: create_doc_project
+      x-sideko-module: doc
+      x-sideko-function-name: create
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NewDocProject"
+      responses:
+        "201":
+          description: Documentation Project created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DocProject"
+        default:
+          description: Unsuccessful Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /doc_project/{doc_name}:
+    parameters:
+      - name: doc_name
+        in: path
+        required: true
+        schema:
+          $ref: "#/components/schemas/ProjectName"
+
+    get:
+      tags:
+        - Documentation Projects
+      summary: Get a specific Documentation Project
+      operationId: get_doc_project
+      x-sideko-module: doc
+      x-sideko-function-name: get
+      responses:
+        "200":
+          description: Details of an Documentation project
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DocProject"
+        default:
+          description: Unsuccessful Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    patch:
+      tags:
+        - Documentation Projects
+      summary: Update an existing Documentation Project
+      operationId: update_doc_project
+      x-sideko-module: doc
+      x-sideko-function-name: patch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateDocProject"
+      responses:
+        "200":
+          description: Documentation Project updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DocProject"
+        default:
+          description: Unsuccessful Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    delete:
+      tags:
+        - Documentation Projects
+      summary: Delete a specific Documentation Project
+      operationId: delete_doc_project
+      x-sideko-module: doc
+      x-sideko-function-name: delete
+      responses:
+        "204":
+          description: Documentation Project deleted
+        default:
+          description: Unsuccessful Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /doc_project/{doc_name}/preview:
+    parameters:
+      - name: doc_name
+        in: path
+        required: true
+        schema:
+          $ref: "#/components/schemas/ProjectName"
+    get:
+      tags:
+        - Documentation Projects
+      summary: A simple check to see if the requesting user has access to the preview doc project
+      operationId: check_preview
+      x-sideko-module: doc
+      x-sideko-function-name: check_preview
+      parameters:
+        - name: pathname
+          in: query
+          required: false
+          schema:
+            type: string
+            description: relative path within docgen site requesting view permissions
+            example: "%2Freferences%my-api%2Fmy-get-documentation"
+        - name: x-doc-preview-password
+          in: header
+          required: false
+          schema:
+            type: string
+            description: A docgen preview environment password used to share preview docs with users outside of Sideko
+        - name: x-doc-preview-org-id
+          in: header
+          required: false
+          schema:
+            type: string
+            description: Organization id of the doc preview environment associated with the password in `x-doc-preview-password`     
+      responses:
+        "200":
+          description: User can preview the doc project
+          content:
+            application/json:
+              schema:
+                type: boolean
+        default:
+          description: Unsuccessful Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    
+  /doc_project/{doc_name}/password:
+    parameters:
+      - name: doc_name
+        in: path
+        required: true
+        schema:
+          $ref: "#/components/schemas/ProjectName"
+    post:
+      tags:
+        - Documentation Projects
+      summary: A password generator for a documentation project preview environment
+      operationId: create_doc_proj_preview_password
+      x-sideko-module: doc.preview
+      x-sideko-function-name: create_password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DocPreviewPasswordName"
+        
+      responses:
+        "200":
+          description: New password generated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DocPreviewPassword"
+        default:
+          description: Unsuccessful Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+                
+    get:
+      tags:
+        - Documentation Projects
+      summary: Lists generated passwords for a documentation project preview environment
+      operationId: list_doc_proj_preview_passwords
+      x-sideko-module: doc.preview
+      x-sideko-function-name: list_passwords
+      responses:
+        "200":
+          description: The generated passwords for a doc project preview
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DocPreviewPassword"
+        default:
+          description: Unsuccessful Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+                
+    delete:
+      tags:
+        - Documentation Projects
+      summary: Deletes a preview environment password
+      operationId: delete_doc_proj_preview_password
+      x-sideko-module: doc.preview
+      x-sideko-function-name: delete_password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DocPreviewPasswordName"
+      responses:
+        "204":
+          description: Deleted doc project preview password
+        default:
+          description: Unsuccessful Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /doc_project/{doc_name}/theme:
+    parameters:
+      - name: doc_name
+        in: path
+        required: true
+        schema:
+          $ref: "#/components/schemas/ProjectName"
+    get:
+      tags:
+        - Documentation Projects
+      summary: Get the theme attached to a documentation project
+      operationId: get_doc_project_theme
+      x-sideko-module: doc.theme
+      x-sideko-function-name: get
+      responses:
+        "200":
+          description: Theme attached to a documentation project
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Theme"
+        default:
+          description: Unsuccessful Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    put:
+      tags:
+        - Documentation Projects
+      summary: Update a document project theme
+      operationId: update_doc_project_theme
+      x-sideko-module: doc.theme
+      x-sideko-function-name: update
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ThemeValues"
+      responses:
+        "200":
+          description: Updated theme attached to a documentation project
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Theme"
+        default:
+          description: Unsuccessful Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  # Doc project version
+  /doc_project/{doc_name}/version:
+    parameters:
+      - name: doc_name
+        in: path
+        required: true
+        schema:
+          $ref: "#/components/schemas/ProjectName"
+
+    get:
+      tags:
+        - Documentation Projects
+      summary: List versions of a specific Documentation Project
+      operationId: list_doc_versions
+      x-sideko-module: doc.version
+      x-sideko-function-name: list
+      responses:
+        "200":
+          description: A JSON array of versions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DocVersion"
+        default:
+          description: Unsuccessful Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /doc_project/{doc_name}/version/{doc_version}:
+    parameters:
+      - name: doc_name
+        in: path
+        required: true
+        schema:
+          $ref: "#/components/schemas/ProjectName"
+      - name: doc_version
+        in: path
+        required: true
+        schema:
+          $ref: "#/components/schemas/IdOrInt"
+    get:
+      tags:
+        - Documentation Projects
+      summary: Get a specific version of an Documentation Project
+      operationId: get_doc_version
+      x-sideko-module: doc.version
+      x-sideko-function-name: get
+      responses:
+        "200":
+          description: Details of an Documentation project version
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DocVersion"
+        default:
+          description: Unsuccessful Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  # Guides
+  /doc_project/{doc_name}/version/{doc_version}/guide:
+    parameters:
+      - name: doc_name
+        in: path
+        required: true
+        schema:
+          $ref: "#/components/schemas/ProjectName"
+      - name: doc_version
+        in: path
+        required: true
+        schema:
+          $ref: "#/components/schemas/IdOrInt"
+    get:
+      tags:
+        - Documentation Projects
+      summary: List guides for a specific version of a documentation project
+      operationId: list_guides
+      x-sideko-module: doc.version.guide
+      x-sideko-function-name: list
+      responses:
+        "200":
+          description: Guides listed
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/GuideWithChildren"
+        default:
+          description: Unsuccessful Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    post:
+      tags:
+        - Documentation Projects
+      summary: Create a guide for a specific version of a documentation project
+      operationId: create_guide
+      x-sideko-module: doc.version.guide
+      x-sideko-function-name: create
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NewGuide"
+      responses:
+        "201":
+          description: Guide created
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Guide"
+        default:
+          description: Unsuccessful Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /doc_project/{doc_name}/version/{doc_version}/guide/reorder:
+    parameters:
+      - name: doc_name
+        in: path
+        required: true
+        schema:
+          $ref: "#/components/schemas/ProjectName"
+      - name: doc_version
+        in: path
+        required: true
+        schema:
+          $ref: "#/components/schemas/IdOrInt"
+    post:
+      tags:
+        - Documentation Projects
+      summary: Reorder guides for a specific version of a documentation project
+      operationId: reorder_guides
+      x-sideko-module: doc.version.guide
+      x-sideko-function-name: reorder
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: "#/components/schemas/ReorderGuide"
+      responses:
+        "200":
+          description: Guides reordered
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/GuideWithChildren"
+        default:
+          description: Unsuccessful Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /doc_project/{doc_name}/version/{doc_version}/guide/{guide_id}:
+    parameters:
+      - name: doc_name
+        in: path
+        required: true
+        schema:
+          $ref: "#/components/schemas/ProjectName"
+      - name: doc_version
+        in: path
+        required: true
+        schema:
+          $ref: "#/components/schemas/IdOrInt"
+      - name: guide_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      tags:
+        - Documentation Projects
+      summary: Get a specific guide for a specific version of a documentation project
+      operationId: get_guide
+      x-sideko-module: doc.version.guide
+      x-sideko-function-name: get
+      responses:
+        "200":
+          description: Get guide
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Guide"
+        default:
+          description: Unsuccessful Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    patch:
+      tags:
+        - Documentation Projects
+      summary: Update a specific guide for a specific version of a documentation project
+      operationId: update_guide
+      x-sideko-module: doc.version.guide
+      x-sideko-function-name: patch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateGuide"
+      responses:
+        "200":
+          description: Updated guide
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Guide"
+        default:
+          description: Unsuccessful Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    delete:
+      tags:
+        - Documentation Projects
+      summary: Delete a specific guide for a specific version of a documentation project
+      operationId: delete_guide
+      x-sideko-module: doc.version.guide
+      x-sideko-function-name: delete
+      responses:
+        "204":
+          description: Deleted guide
+        default:
+          description: Unsuccessful Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /doc_project/{doc_name}/version/{doc_version}/guide/{guide_id}/content:
+    parameters:
+      - name: doc_name
+        in: path
+        required: true
+        schema:
+          $ref: "#/components/schemas/ProjectName"
+      - name: doc_version
+        in: path
+        required: true
+        schema:
+          $ref: "#/components/schemas/IdOrInt"
+      - name: guide_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      tags:
+        - Documentation Projects
+      summary: Get content for a specific guide for a specific version of a documentation project
+      operationId: get_guide_content
+      x-sideko-module: doc.version.guide
+      x-sideko-function-name: get_content
+      responses:
+        "200":
+          description: Get guide mdx content
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GuideContent"
+        default:
+          description: Unsuccessful Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  # Doc Project Deploy
+  /doc_project/{doc_name}/deployment:
+    parameters:
+      - name: doc_name
+        in: path
+        required: true
+        schema:
+          $ref: "#/components/schemas/ProjectName"
+
+    post:
+      tags:
+        - Documentation Projects
+      summary: Deploy a new generated version of documentation with linked guides & APIs
+      description: Deploys a new generated version of documentation with linked guides & APIs
+      operationId: trigger_deployment
+      x-sideko-module: doc.deployment
+      x-sideko-function-name: trigger
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NewDeployment"
+      responses:
+        "201":
+          description: New deployment triggered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Deployment"
+        default:
+          description: Unsuccessful Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    get:
+      tags:
+        - Documentation Projects
+      summary: List deployments for a specific documentation project
+      description: Retrieves all deployments for a doc project
+      operationId: list_deployments
+      x-sideko-module: doc.deployment
+      x-sideko-function-name: list
+      parameters:
+        - name: target
+          required: false
+          in: query
+          schema:
+            $ref: "#/components/schemas/DeploymentTarget"
+        - name: limit
+          required: false
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deployments matching the query
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Deployment"
+        default:
+          description: Unsuccessful Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /doc_project/{doc_name}/deployment/{deployment_id}:
+    parameters:
+      - name: doc_name
+        in: path
+        required: true
+        schema:
+          $ref: "#/components/schemas/ProjectName"
+      - name: deployment_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+
+    get:
+      tags:
+        - Documentation Projects
+      summary: Get a specific deployment for a specific documentation project
+      description: Retrieves single deployment
+      operationId: get_deployment
+      x-sideko-module: doc.deployment
+      x-sideko-function-name: get
+      responses:
+        "200":
+          description: Retrieved deployment
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Deployment"
+        default:
+          description: Unsuccessful Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  # Api Link Groups
+  /api_link_group:
+    post:
+      tags:
+        - API Links
+      summary: Create API group to organize API links
+      operationId: create_api_link_group
+      x-sideko-module: api_link.group
+      x-sideko-function-name: create
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NewApiLinkGroup"
+      responses:
+        "201":
+          description: Link group created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiLinkGroup"
+        default:
+          description: Unsuccessful Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    get:
+      tags:
+        - API Links
+      summary: List API groups for doc version
+      operationId: list_api_link_groups
+      x-sideko-module: api_link.group
+      x-sideko-function-name: list
+      parameters:
+        - name: doc_name
+          in: query
+          required: true
+          schema:
+            $ref: "#/components/schemas/ProjectName"
+        - name: doc_version
+          in: query
+          required: true
+          schema:
+            $ref: "#/components/schemas/IdOrInt"
+      responses:
+        "200":
+          description: api groups
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ApiLinkGroup"
+        default:
+          description: Unsuccessful Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api_link_group/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+
+    patch:
+      tags:
+        - API Links
+      summary: Updates API link group
+      operationId: update_api_link_group
+      x-sideko-module: api_link.group
+      x-sideko-function-name: patch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateApiLinkGroup"
+      responses:
+        "200":
+          description: API link group updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiLinkGroup"
+        default:
+          description: Unsuccessful Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    delete:
+      tags:
+        - API Links
+      summary: Deletes the api group and all its links
+      operationId: delete_api_link_group
+      x-sideko-module: api_link.group
+      x-sideko-function-name: delete
+      responses:
+        "204":
+          description: API link group deleted with all links in the group
+        default:
+          description: Unsuccessful Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  # Api Links
+  /api_link:
+    post:
+      tags:
+        - API Links
+      summary: Links API Version to Documentation project version with a specified update policy
+      operationId: create_api_link
+      x-sideko-module: api_link
+      x-sideko-function-name: create
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NewApiLink"
+      responses:
+        "201":
+          description: Link created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiLink"
+        default:
+          description: Unsuccessful Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    get:
+      tags:
+        - API Links
+      summary: List API links for doc version
+      operationId: list_api_links
+      x-sideko-module: api_link
+      x-sideko-function-name: list
+      parameters:
+        - name: doc_name
+          in: query
+          required: true
+          schema:
+            $ref: "#/components/schemas/ProjectName"
+        - name: doc_version
+          in: query
+          required: true
+          schema:
+            $ref: "#/components/schemas/IdOrInt"
+      responses:
+        "200":
+          description: Retrieve API links for a doc version
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ApiLink"
+        default:
+          description: Unsuccessful Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api_link/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+
+    get:
+      tags:
+        - API Links
+      summary: Retrieve single API link
+      operationId: get_api_link
+      x-sideko-module: api_link
+      x-sideko-function-name: get
+      responses:
+        "200":
+          description: Retrieved api link
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiLink"
+        default:
+          description: Unsuccessful Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    patch:
+      tags:
+        - API Links
+      summary: Updates an API link
+      operationId: update_api_link
+      x-sideko-module: api_link
+      x-sideko-function-name: patch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateApiLink"
+      responses:
+        "200":
+          description: Link updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiLink"
+        default:
+          description: Unsuccessful Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    delete:
+      tags:
+        - API Links
+      summary: Removes an API link
+      operationId: delete_api_link
+      x-sideko-module: api_link
+      x-sideko-function-name: delete
+      responses:
+        "204":
+          description: Link deleted
+        default:
+          description: Unsuccessful Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api_link/reorder:
+    post:
+      tags:
+        - API Links
+      summary: Reorder API links and groups
+      operationId: reorder_api_links
+      x-sideko-module: api_link
+      x-sideko-function-name: reorder
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ApiReorder"
+      responses:
+        "200":
+          description: successfully reordered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiReorder"
+        default:
+          description: Unsuccessful Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  # Organization
+  /organization:
+    get:
+      tags:
+        - Organization
+      summary: Get Organization
+      description: Retrieves the organization of the current authenticated user
+      operationId: get_organization
+      x-sideko-module: org
+      x-sideko-function-name: get
+      responses:
+        "200":
+          description: User organization object
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Organization"
+        default:
+          description: Unsuccessful Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    post:
+      tags:
+        - Organization
+      summary: Create a new organization
+      operationId: create_organization
+      x-sideko-module: org
+      x-sideko-function-name: create
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NewOrganization"
+      responses:
+        "201":
+          description: Organization created
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/OrganizationWithRedirect"
+        default:
+          description: Unsuccessful Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /organization/theme:
+    get:
+      tags:
+        - Organization
+      summary: Get organization theme
+      description: Retrieves the documentation project theme configured at the organization level
+      operationId: get_organization_theme
+      x-sideko-module: org.theme
+      x-sideko-function-name: get
+      responses:
+        "200":
+          description: Theme attached to organization
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Theme"
+        default:
+          description: Unsuccessful Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    put:
+      tags:
+        - Organization
+      summary: Update organization theme
+      description: Update documentation project theme configured at the organization level
+      operationId: update_organization_theme
+      x-sideko-module: org.theme
+      x-sideko-function-name: update
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ThemeValues"
+      responses:
+        "200":
+          description: Updated theme attached to an organization
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Theme"
+        default:
+          description: Unsuccessful Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /organization/asset:
+    post:
+      tags:
+        - Assets
+      description: Add a media asset like logos or other media to an organization
+      operationId: upload_assets
+      x-sideko-module: asset
+      x-sideko-function-name: create
+      summary: Upload Assets
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: "#/components/schemas/File"
+            examples:
+              "Asset Upload":
+                value:
+                  file: "uploads/image.png"
+      responses:
+        "201":
+          description: Added assets to organization
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Asset"
+        default:
+          description: Unsuccessful Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    get:
+      tags:
+        - Assets
+      description: Get all media assets for an organization
+      operationId: list_assets
+      x-sideko-module: asset
+      x-sideko-function-name: list
+      summary: List Assets
+      parameters:
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+        - name: name
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Retrieved organization assets
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListAssetsPage"
+        default:
+          description: Unsuccessful Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /organization/asset/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+
+    delete:
+      tags:
+        - Assets
+      description: Delete a media asset in your organization
+      operationId: delete_asset
+      x-sideko-module: asset
+      x-sideko-function-name: delete
+      summary: Delete Asset
+      responses:
+        "204":
+          description: Successfully deleted the asset and it's contents
+        default:
+          description: Unsuccessful Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    patch:
+      tags:
+        - Assets
+      description: Update a media asset in your organization
+      operationId: update_asset
+      x-sideko-module: asset
+      x-sideko-function-name: patch
+      summary: Update Asset
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateAsset"
+      responses:
+        "200":
+          description: Successfully deleted the asset and it's contents
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Asset"
+        default:
+          description: Unsuccessful Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  # User
+  /user/me:
+    get:
+      tags:
+        - Users
+      summary: Get current user profile
+      operationId: get_current_user
+      x-sideko-module: user.me
+      x-sideko-function-name: get
+      responses:
+        "200":
+          description: User profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        default:
+          description: Unsuccessful Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /user/me/api_key:
+    get:
+      tags:
+        - Users
+      summary: Get API key for the current user
+      x-sideko-module: user.me
+      x-sideko-function-name: get_key
+      operationId: get_api_key
+      responses:
+        "200":
+          description: API key
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserApiKey"
+        default:
+          description: Unsuccessful Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /user/invite:
+    post:
+      tags:
+        - Users
+      summary: Invite a user to an organization with a specific role
+      operationId: invite_user
+      x-sideko-module: user
+      x-sideko-function-name: invite
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Invite"
+      responses:
+        "202":
+          description: User invited
+        default:
+          description: Unsuccessful Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /service_account:
+    post:
+      tags:
+        - Service Accounts
+      summary: Create a new service account with a set of project permissions
+      operationId: create_service_account
+      x-sideko-module: service_account
+      x-sideko-function-name: create
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NewServiceAccount"
+      responses:
+        "200":
+          description: Service Account Created, returning API key
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserApiKey"
+        default:
+          description: Unsuccessful Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    get:
+      tags:
+        - Service Accounts
+      summary: List all service accounts in organization
+      operationId: list_service_accounts
+      x-sideko-module: service_account
+      x-sideko-function-name: list
+      responses:
+        "200":
+          description: Successfully retrieved service accounts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/User"
+        default:
+          description: Unsuccessful Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /service_account/{id}:
+    parameters:
+      - name: id
+        required: true
+        in: path
+        schema:
+          type: string
+          format: uuid
+          description: service account id
+
+    get:
+      tags:
+        - Service Accounts
+      summary: Get service account by the ID
+      operationId: get_service_account
+      x-sideko-module: service_account
+      x-sideko-function-name: get
+      responses:
+        "200":
+          description: Successfully retrieved service account
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        default:
+          description: Unsuccessful Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    delete:
+      tags:
+        - Service Accounts
+      summary: Delete a service account
+      operationId: delete_service_account
+      x-sideko-module: service_account
+      x-sideko-function-name: delete
+      responses:
+        "204":
+          description: Service account deleted
+        default:
+          description: Unsuccessful Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  # Authentication
+  /auth/login_callback:
+    get:
+      tags:
+        - Auth
+      summary: Callback for handling authentication response
+      operationId: login_callback
+      x-sideko-module: auth
+      x-sideko-function-name: login_callback
+      security: []
+      parameters:
+        - name: code
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: state
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "303":
+          description: Authentication successful
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /auth/login_url:
+    get:
+      tags:
+        - Auth
+      summary: Get URL for initiating login process
+      operationId: login_url
+      x-sideko-module: auth
+      x-sideko-function-name: login_url
+      parameters:
+        - name: cli_output
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: cli_port
+          in: query
+          required: false
+          schema:
+            type: integer
+      security: []
+      responses:
+        "303":
+          description: URL for login
+
+  /auth/exchange_key:
+    get:
+      tags:
+        - Auth
+      summary: Exchange one-time auth key for api key
+      operationId: exchange_code_for_key
+      x-sideko-module: auth
+      x-sideko-function-name: exchange_code
+      parameters:
+        - name: code
+          in: query
+          required: true
+          schema:
+            type: string
+      security: []
+      responses:
+        "200":
+          description: API key
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserApiKey"
+        default:
+          description: Unsuccessful Request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  # Webhooks
+  /webhook/vercel:
+    post:
+      summary: webhooks sent to sideko by vercel
+      operationId: vercel_webhook
+      x-sideko-module: webhook
+      x-sideko-function-name: vercel
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        202:
+          description: the webhook has been verified & accepted
+
+components:
+  securitySchemes:
+    CookieAuth:
+      type: apiKey
+      name: SIDEKO_SESSION
+      in: cookie
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: x-sideko-key
+      description: API key authentication using the x-sideko-key header
+
+  schemas:
+    # ---------- Common --------
+    ProjectName:
+      type: string
+      description: Unique project name or the uuid
+      example: my-project
+
+    IdOrInt:
+      oneOf:
+        - type: string
+          format: uuid
+        - type: integer
+
+    ApiVersion:
+      description: Can be either the semantic version or a released type (like latest)
+      oneOf:
+        - $ref: "#/components/schemas/VersionType"
+        - $ref: "#/components/schemas/Semver"
+
+    VersionType:
+      type: string
+      enum:
+        - latest
+
+    VersionOrBump:
+      description: Semantic version (0.1.0) or a release type (major, minor, patch, rc)
+      example: patch
+      oneOf:
+        - $ref: "#/components/schemas/VersionBump"
+        - type: string
+          description: Semantic version
+          example: "0.1.0"
+
+    VersionBump:
+      type: string
+      description: A release type to automatically increment
+      enum:
+        - major
+        - minor
+        - patch
+        - rc-major
+        - rc-minor
+        - rc-patch
+        - rc
+
+    Semver:
+      type: string
+      description: Semantic version following conventions from https://semver.org/
+      example: "0.1.0"
+
+    # ---------- User ----------
+    User:
+      type: object
+      required:
+        - id
+        - first_name
+        - last_name
+        - email
+        - avatar_url
+        - is_service_account
+        - expiration
+        - created_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        first_name:
+          type: string
+        last_name:
+          type: string
+        email:
+          type: string
+          format: email
+        avatar_url:
+          type: string
+          format: uri
+        expiration:
+          type: ["null", string]
+          format: date-time
+        is_service_account:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+
+    UserApiKey:
+      allOf:
+        - $ref: "#/components/schemas/User"
+        - type: object
+          required:
+            - api_key
+          properties:
+            api_key:
+              type: string
+              example: sideko_live_abc123
+
+    ObjectRole:
+      type: object
+      required:
+        - object_id
+        - object_type
+        - role_definition_id
+      properties:
+        object_id:
+          type: string
+          format: uuid
+        object_type:
+          $ref: "#/components/schemas/ObjectType"
+        role_definition_id:
+          $ref: "#/components/schemas/RoleDefinitionId"
+
+    NewServiceAccount:
+      type: object
+      required:
+        - name
+        - object_roles
+      properties:
+        name:
+          type: string
+          example: Documentation Publisher Service Account
+        object_roles:
+          type: array
+          items:
+            $ref: "#/components/schemas/ObjectRole"
+        expiration:
+          type: string
+          format: date-time
+          example: 2025-01-01T00:00:00
+          description: UTC datetime when the service account key should expire (ISO 8601 format without timezone), key never expires expiration is not specified
+
+    # ---------- API Link Group ----------
+    NewApiLinkGroup:
+      type: object
+      required:
+        - doc_version_id
+        - nav_label
+        - slug
+      properties:
+        doc_version_id:
+          type: string
+          format: uuid
+        nav_label:
+          type: string
+        slug:
+          type: string
+
+    UpdateApiLinkGroup:
+      type: object
+      properties:
+        nav_label:
+          type: string
+        slug:
+          type: string
+
+    ApiLinkGroup:
+      type: object
+      required:
+        - id
+        - doc_version_id
+        - nav_label
+        - slug
+        - order
+      properties:
+        id:
+          type: string
+          format: uuid
+        doc_version_id:
+          type: string
+          format: uuid
+        nav_label:
+          type: string
+        slug:
+          type: string
+        order:
+          type: integer
+
+    # ---------- API Link ----------
+    ApiLink:
+      type: object
+      required:
+        - id
+        - doc_version
+        - api_version
+        - nav_label
+        - slug
+        - group_id
+        - order
+        - policy
+        - created_at
+        - build_request_enabled
+        - include_mock_server
+      properties:
+        id:
+          type: string
+          format: uuid
+        doc_version:
+          description: Summary object of the doc version included in the api link
+          type: object
+          required:
+            - id
+            - version
+            - doc_project_id
+            - doc_project_name
+          properties:
+            id:
+              type: string
+              format: uuid
+            version:
+              type: integer
+              example: 1
+            doc_project_id:
+              type: string
+              format: uuid
+            doc_project_name:
+              type: string
+              pattern: "^[a-z0-9]+(-[a-z0-9]+)*$"
+              example: my-company-docs
+        api_version:
+          description: Summary object of the api version included in the api link
+          type: object
+          required:
+            - id
+            - version
+            - api_id
+            - api_name
+          properties:
+            api_id:
+              type: string
+              format: uuid
+            api_name:
+              type: string
+              pattern: "^[a-z0-9]+(-[a-z0-9]+)*$"
+              example: my-api-spec
+            id:
+              type: string
+              format: uuid
+            version:
+              type: string
+              example: "1.0.0"
+        nav_label:
+          type: string
+          example: Generation API
+        slug:
+          type: string
+          example: generation-api
+        group_id:
+          type: string
+          format: uuid
+        order:
+          type: integer
+          example: 0
+        policy:
+          $ref: "#/components/schemas/ApiLinkPolicy"
+        build_request_enabled:
+          type: boolean
+        include_mock_server:
+          type: boolean
+          description: automatically add the sideko mock server as one of the server options when building a request in the api reference (requires mock server to be enabled on the linked Api Version)
+        created_at:
+          type: string
+          format: date-time
+
+    ApiLinkPolicy:
+      type: string
+      description: defines how the link should be automatically updated as new API version are added
+      enum:
+        - latest
+        - pinned
+
+    LatestApiLinkPolicy:
+      type: object
+      required:
+        - type
+        - api_id
+      properties:
+        type:
+          type: string
+          enum:
+            - latest
+        api_id:
+          type: string
+          example: my-api
+    PinnedApiLinkPolicy:
+      type: object
+      required:
+        - type
+        - api_id
+        - api_version
+      properties:
+        type:
+          type: string
+          enum:
+            - pinned
+        api_id:
+          type: string
+          example: "my-api"
+        api_version:
+          type: string
+          example: "0.1.0"
+
+    NewApiLink:
+      type: object
+      required:
+        - doc_version_id
+        - group_id
+        - nav_label
+        - slug
+        - policy
+      properties:
+        doc_version_id:
+          type: string
+          format: uuid
+        group_id:
+          type: string
+          format: uuid
+        nav_label:
+          type: string
+        slug:
+          type: string
+        build_request_enabled:
+          type: boolean
+        include_mock_server:
+          type: boolean
+          description: automatically add the sideko mock server as one of the server options when building a request in the api reference (requires mock server to be enabled on the linked Api Version)
+        policy:
+          oneOf:
+            - $ref: "#/components/schemas/LatestApiLinkPolicy"
+            - $ref: "#/components/schemas/PinnedApiLinkPolicy"
+
+    UpdateApiLink:
+      type: object
+      properties:
+        nav_label:
+          type: string
+        slug:
+          type: string
+        api_version:
+          type: object
+          description: the api version can only be patched on api links with a `pinned` policy
+          required:
+            - api_id
+            - version
+          properties:
+            api_id:
+              type: string
+              example: my-api
+            version:
+              type: string
+              example: "0.1.0"
+        policy:
+          $ref: "#/components/schemas/ApiLinkPolicy"
+        build_request_enabled:
+          type: boolean
+        include_mock_server:
+          type: boolean
+          description: automatically add the sideko mock server as one of the server options when building a request in the api reference (requires mock server to be enabled on the linked Api Version)
+
+    # ---------- API Reordering ----------
+    ApiLinkGroupReorder:
+      type: object
+      required:
+        - id
+        - order
+      properties:
+        id:
+          type: string
+          format: uuid
+        order:
+          type: integer
+
+    ApiLinkReorder:
+      type: object
+      required:
+        - id
+        - group_id
+        - order
+      properties:
+        id:
+          type: string
+          format: uuid
+        group_id:
+          type: string
+          format: uuid
+        order:
+          type: integer
+
+    ApiReorder:
+      type: object
+      required:
+        - doc_version_id
+        - groups
+        - links
+      properties:
+        doc_version_id:
+          type: string
+          format: uuid
+        groups:
+          type: array
+          items:
+            $ref: "#/components/schemas/ApiLinkGroupReorder"
+        links:
+          type: array
+          items:
+            $ref: "#/components/schemas/ApiLinkReorder"
+
+    # ---------- Doc Project ----------
+
+    NewDocProject:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          pattern: "^[a-z0-9]+(-[a-z0-9]+)*$"
+          example: my-company-docs
+
+    UpdateDocProject:
+      type: object
+      properties:
+        name:
+          type: string
+          pattern: "^[a-z0-9]+(-[a-z0-9]+)*$"
+          example: my-company-docs
+        logos:
+          type: object
+          properties:
+            dark:
+              type: string
+              format: uuid
+              description: asset id of dark logo
+            light:
+              type: string
+              format: uuid
+              description: asset id of light logo
+            favicon:
+              type: string
+              format: uuid
+              description: asset id of favicon
+        settings:
+          type: object
+          properties:
+            metadata:
+              type: object
+              properties:
+                title:
+                  type: string
+                description:
+                  type: string
+            action_button:
+              type: object
+              properties:
+                enabled:
+                  type: boolean
+                label:
+                  type: string
+                url:
+                  type: string
+                  format: uri
+
+    DocProject:
+      type: object
+      required:
+        - id
+        - name
+        - domains
+        - logos
+        - settings
+        - current_version
+        - created_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          pattern: "^[a-z0-9]+(-[a-z0-9]+)*$"
+        current_version:
+          $ref: "#/components/schemas/DocVersion"
+        domains:
+          $ref: "#/components/schemas/DocProjectDomains"
+        logos:
+          $ref: "#/components/schemas/DocProjectLogos"
+        settings:
+          $ref: "#/components/schemas/DocProjectSettings"
+        created_at:
+          type: string
+          format: date-time
+
+    DocProjectDomains:
+      type: object
+      required:
+        - preview
+        - production
+      properties:
+        preview:
+          type: [string, "null"]
+        production:
+          type: [string, "null"]
+
+    DocProjectSettings:
+      type: object
+      required:
+        - metadata
+        - action_button
+      properties:
+        metadata:
+          $ref: "#/components/schemas/DocProjectMetadata"
+        action_button:
+          $ref: "#/components/schemas/DocProjectActionButton"
+
+    DocProjectMetadata:
+      type: object
+      required:
+        - title
+        - description
+      properties:
+        title:
+          type: [string, "null"]
+        description:
+          type: [string, "null"]
+
+    DocProjectLogos:
+      type: object
+      required:
+        - dark
+        - light
+        - favicon
+      properties:
+        dark:
+          oneOf:
+            - type: "null"
+            - $ref: "#/components/schemas/Asset"
+        light:
+          oneOf:
+            - type: "null"
+            - $ref: "#/components/schemas/Asset"
+        favicon:
+          oneOf:
+            - type: "null"
+            - $ref: "#/components/schemas/Asset"
+
+    DocProjectActionButton:
+      type: object
+      required:
+        - enabled
+        - url
+        - label
+      properties:
+        enabled:
+          type: boolean
+        url:
+          type: [string, "null"]
+          format: uri
+        label:
+          type: [string, "null"]
+
+    # ---------- Assets ----------
+    ListAssetsPage:
+      type: object
+      required:
+        - results
+        - pagination
+      properties:
+        results:
+          type: array
+          items:
+            $ref: "#/components/schemas/Asset"
+        pagination:
+          $ref: "#/components/schemas/Pagination"
+
+    Asset:
+      type: object
+      required:
+        - id
+        - extension
+        - name
+        - url
+      properties:
+        id:
+          type: string
+          format: uuid
+        extension:
+          type: string
+        name:
+          type: string
+        url:
+          type: string
+          format: uri
+
+    UpdateAsset:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Asset name (without any extension)
+
+    File:
+      type: object
+      required:
+        - file
+      properties:
+        file:
+          type: string
+          format: binary
+
+    # ---------- Doc Version ----------
+    DocVersion:
+      type: object
+      required:
+        - id
+        - version
+        - status
+        - doc_project_id
+        - status
+        - created_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        version:
+          type: integer
+          example: 1
+        doc_project_id:
+          type: string
+          format: uuid
+        status:
+          $ref: "#/components/schemas/DocVersionStatus"
+        created_at:
+          type: string
+          format: date-time
+
+    DocVersionStatus:
+      type: string
+      enum:
+        - Draft
+        - Publishing
+        - Published
+
+    # ---------- API Specification ----------
+    NewApi:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          pattern: "^[a-z0-9]+(-[a-z0-9]+)*$"
+          example: my-api-spec
+
+    NewApiWithVersion:
+      allOf:
+        - type: object
+          required:
+            - name
+          properties:
+            name:
+              type: string
+              pattern: "^[a-z0-9]+(-[a-z0-9]+)*$"
+              example: my-api-spec
+        - $ref: "#/components/schemas/NewApiSpec"
+
+    UpdateApi:
+      description: Used to patch an API Specification
+      type: object
+      properties:
+        name:
+          type: string
+          pattern: "^[a-z0-9]+(-[a-z0-9]+)*$"
+          example: my-new-api-name
+
+    Api:
+      type: object
+      required:
+        - id
+        - name
+        - version_count
+        - created_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          example: my-api-spec-name
+          pattern: "^[a-z0-9]+(-[a-z0-9]+)*$"
+        version_count:
+          type: integer
+          example: 10
+          description: number of versions in the API, including all pre-release versions
+        created_at:
+          type: string
+          format: date-time
+
+    # ---------- API Version ----------
+    ApiSpec:
+      type: object
+      required:
+        - id
+        - version
+        - api
+        - mock_server
+        - notes
+        - created_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        version:
+          type: string
+        api:
+          $ref: "#/components/schemas/Api"
+        mock_server:
+          $ref: "#/components/schemas/ApiMockServer"
+        notes:
+          type: string
+          format: html
+          description: Text field to add any notes (comments, changelog, etc.) relevant to the version in html format
+          example: <p>This version includes a number of excellent improvements</p>
+        created_at:
+          type: string
+          format: date-time
+
+    ApiMockServer:
+      type: object
+      required:
+        - enabled
+        - url
+      properties:
+        enabled:
+          type: boolean
+        url:
+          type: string
+          format: uri
+
+    NewApiSpec:
+      type: object
+      required:
+        - version
+        - openapi
+      properties:
+        version:
+          $ref: "#/components/schemas/VersionOrBump"
+        openapi:
+          type: string
+          description: An OpenAPI specification in YAML or JSON
+          format: binary
+          example: uploads/openapi.yaml
+        mock_server_enabled:
+          type: boolean
+          description: Enable a public mock server requests for this API Specification
+          default: true
+        allow_lint_errors:
+          type: boolean
+          default: false
+          description: Allow API spec to be created even if it has linting errors
+        notes:
+          type: string
+          format: html
+          description: Text field to add any notes (comments, changelog, etc.) relevant to the version in html format
+          example: <p>This version includes a number of excellent improvements</p>
+
+    UpdateApiSpec:
+      type: object
+      properties:
+        version:
+          type: string
+          description: Semantic Version of the API
+        openapi:
+          type: string
+          description: An OpenAPI specification in YAML or JSON
+          format: binary
+          example: uploads/openapi.yaml
+        allow_lint_errors:
+          type: boolean
+          description: Allow API spec to be updated with a new OpenAPI spec even if it has linting errors
+        mock_server_enabled:
+          type: boolean
+          description: Enable a public mock server requests for this API Specification
+        notes:
+          type: string
+          format: html
+          description: Text field to add any notes (comments, changelog, etc.) relevant to the version in html format
+          example: <p>This version includes a number of excellent improvements</p>
+
+    OpenAPIExtension:
+      type: string
+      enum:
+        - json
+        - yaml
+
+    OpenAPI:
+      type: object
+      required:
+        - openapi
+        - is_valid
+        - is_config_valid
+        - validations
+        - extension
+      properties:
+        openapi:
+          type: string
+          description: OpenAPI content as a string in JSON format
+        is_valid:
+          type: boolean
+          description: Is the OpenAPI spec a valid 3.x spec
+        is_config_valid:
+          type: boolean
+          description: Are the various the Sideko configuration (x-fields) valid
+        validations:
+          type: array
+          items:
+            $ref: "#/components/schemas/Validation"
+        extension:
+          $ref: "#/components/schemas/OpenAPIExtension"
+
+    Validation:
+      type: object
+      required:
+        - severity
+        - message
+      properties:
+        severity:
+          type: string
+          enum:
+            - info
+            - warning
+            - error
+        message:
+          type: string
+          description: description of the validation issue
+
+    ApiSpecStats:
+      type: object
+      required:
+        - endpoints
+        - methods
+        - authenticated_methods
+        - public_methods
+        - response_codes
+        - authentication_schemes
+        - lint_errors
+      properties:
+        endpoints:
+          type: integer
+          description: Total Endpoints (paths)
+        methods:
+          type: integer
+          description: Total Methods (operations)
+        authenticated_methods:
+          type: integer
+          description: Total Authenticated Methods (operations)
+        public_methods:
+          type: integer
+          description: Total Unauthenticated Methods (operations)
+        response_codes:
+          type: array
+          description: All Response Codes (not deduplicated)
+          items:
+            type: integer
+        authentication_schemes:
+          type: array
+          description: A description of all defined auth schemes
+          items:
+            type: string
+            description: name of the authentication scheme
+        lint_errors:
+          type: object
+          required:
+            - missing_operation_ids
+            - incorrect_paths
+            - incorrect_examples
+          properties:
+            missing_operation_ids:
+              type: array
+              items:
+                $ref: "#/components/schemas/LintErrorDetails"
+            incorrect_paths:
+              type: array
+              items:
+                type: string
+            incorrect_examples:
+              type: array
+              items:
+                $ref: "#/components/schemas/LintErrorDetails"
+
+    # ---------- API Linting ----------
+    NewLint:
+      type: object
+      description: You must either provide `openapi` OR (`api_name` AND `api_version`)
+      properties:
+        openapi:
+          type: string
+          format: binary
+          example: uploads/openapi.yaml
+        api_name:
+          $ref: "#/components/schemas/ProjectName"
+        api_version:
+          $ref: "#/components/schemas/ApiVersion"
+
+    LintReport:
+      type: object
+      required:
+        - summary
+        - results
+      properties:
+        summary:
+          $ref: "#/components/schemas/LintSummary"
+        results:
+          type: array
+          items:
+            $ref: "#/components/schemas/LintResult"
+
+    LintSummary:
+      type: object
+      required:
+        - errors
+        - warns
+        - infos
+      properties:
+        errors:
+          type: integer
+        warns:
+          type: integer
+        infos:
+          type: integer
+
+    LintResult:
+      type: object
+      required:
+        - location
+        - rule
+        - category
+        - severity
+        - message
+        - how_to_fix
+      properties:
+        location:
+          $ref: "#/components/schemas/LintLocation"
+        rule:
+          type: string
+        category:
+          type: string
+        severity:
+          $ref: "#/components/schemas/LintSeverity"
+        message:
+          type: string
+        how_to_fix:
+          type: string
+
+    LintLocation:
+      type: object
+      required:
+        - path
+        - start_line
+        - start_column
+        - end_line
+        - end_column
+      properties:
+        path:
+          type: string
+        start_line:
+          type: integer
+        start_column:
+          type: integer
+        end_line:
+          type: integer
+        end_column:
+          type: integer
+
+    LintSeverity:
+      type: string
+      enum:
+        - error
+        - warn
+        - info
+        - unknown
+    # ---------- Guide ----------
+    GuideBase:
+      type: object
+      required:
+        - id
+        - slug
+        - nav_label
+        - is_parent
+        - parent_id
+        - order
+        - table_of_contents
+        - icon
+        - created_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        slug:
+          type: string
+          description: the url slug (route) for this guide. Must be one word. Use - for spaces. optimize the name for SEO
+        nav_label:
+          type: string
+          description: the label that shows on the navbar for this guide
+        is_parent:
+          type: boolean
+        parent_id:
+          type: [string, "null"]
+          format: uuid
+        order:
+          type: integer
+        table_of_contents:
+          type: boolean
+        icon:
+          oneOf:
+            - type: "null"
+            - $ref: "#/components/schemas/LucideIcon"
+        created_at:
+          type: string
+          format: date-time
+
+    Guide:
+      allOf:
+        - $ref: "#/components/schemas/GuideBase"
+        - type: object
+          required:
+            - prev_href
+            - next_href
+            - default_prev_href
+            - default_next_href
+          properties:
+            prev_href:
+              oneOf:
+                - type: "null"
+                - $ref: "#/components/schemas/GuideHref"
+            next_href:
+              oneOf:
+                - type: "null"
+                - $ref: "#/components/schemas/GuideHref"
+            default_prev_href:
+              oneOf:
+                - type: "null"
+                - $ref: "#/components/schemas/GuideHref"
+            default_next_href:
+              oneOf:
+                - type: "null"
+                - $ref: "#/components/schemas/GuideHref"
+
+    LucideIcon:
+      type: string
+      description: lucide icon name for guide, see https://lucide.dev/icons/ for complete list of options
+      example: house
+
+    GuideHref:
+      type: object
+      required:
+        - id
+        - nav_label
+      properties:
+        id:
+          type: string
+          format: uuid
+        nav_label:
+          type: string
+
+    ReorderGuide:
+      type: object
+      required:
+        - id
+        - order
+        - parent_id
+      properties:
+        id:
+          type: string
+          format: uuid
+        order:
+          type: integer
+        parent_id:
+          type: [string, "null"]
+          format: uuid
+
+    GuideWithChildren:
+      allOf:
+        - $ref: "#/components/schemas/GuideBase"
+        - type: object
+          required:
+            - children
+          properties:
+            children:
+              type: array
+              items:
+                $ref: "#/components/schemas/GuideWithChildren"
+
+    GuideContent:
+      type: object
+      required:
+        - content
+      properties:
+        content:
+          type: string
+
+    NewGuide:
+      type: object
+      required:
+        - content
+        - nav_label
+        - slug
+        - is_parent
+      properties:
+        content:
+          type: string
+        nav_label:
+          type: string
+          description: the label that shows on the navbar for this guide
+        slug:
+          type: string
+          description: the url slug (route) for this guide. Must be one word. Use - for spaces. optimize the name for SEO
+        is_parent:
+          type: boolean
+        parent_id:
+          type: string
+          format: uuid
+        table_of_contents:
+          type: boolean
+        prev_id:
+          type: string
+          format: uuid
+        next_id:
+          type: string
+          format: uuid
+        icon:
+          $ref: "#/components/schemas/LucideIcon"
+
+    UpdateGuide:
+      type: object
+      properties:
+        content:
+          type: string
+        nav_label:
+          type: string
+          description: the label that shows on the navbar for this guide
+        slug:
+          type: string
+          description: the url slug (route) for this guide. Must be one word. Use - for spaces. optimize the name for SEO
+        table_of_contents:
+          type: boolean
+        prev_id:
+          type: [string, "null"]
+          format: uuid
+        next_id:
+          type: [string, "null"]
+          format: uuid
+        icon:
+          oneOf:
+            - type: "null"
+            - $ref: "#/components/schemas/LucideIcon"
+
+    # ---------- Organization ----------
+    NewOrganization:
+      type: object
+      required:
+        - name
+        - subdomain
+      properties:
+        name:
+          type: string
+          example: My Organization
+        subdomain:
+          type: string
+          example: my-org
+
+    OrganizationFeatures:
+      type: object
+      required:
+        - max_doc_projects
+        - max_api_projects
+        - max_teammates
+        - max_mock_servers
+        - max_service_accounts
+        - max_sdk_api_methods
+        - allow_sdk_tests
+        - allow_sdk_python
+        - allow_sdk_typescript
+        - allow_sdk_rust
+        - allow_sdk_go
+        - allow_sdk_java
+        - allow_sdk_cli
+      properties:
+        max_doc_projects:
+          type: integer
+          description: Maximum number of documentation projects allowed for the organization
+        max_api_projects:
+          type: integer
+          description: Maximum number of APIs allowed for the organization
+        max_teammates:
+          type: integer
+          description: Maximum number of team members allowed for this organization
+        max_mock_servers:
+          type: integer
+          description: Maximum number of mock servers allowed for this organization
+        max_service_accounts:
+          type: integer
+          description: Maximum number of service accounts allowed for this organization
+        max_sdk_api_methods:
+          type: integer
+          description: Maximum number of SDK methods allowed in a generation
+        allow_sdk_tests:
+          type: boolean
+          description: Is the organization allowed to generated tests with it's SDKs
+        allow_sdk_python:
+          type: boolean
+          description: Is the organization allowed to generated SDKs for target python
+        allow_sdk_typescript:
+          type: boolean
+          description: Is the organization allowed to generated SDKs for target typescript
+        allow_sdk_rust:
+          type: boolean
+          description: Is the organization allowed to generated SDKs for target rust
+        allow_sdk_go:
+          type: boolean
+          description: Is the organization allowed to generated SDKs for target go
+        allow_sdk_java:
+          type: boolean
+          description: Is the organization allowed to generated SDKs for target java
+        allow_sdk_cli:
+          type: boolean
+          description: Is the organization allowed to generated SDKs for target cli
+
+    Organization:
+      type: object
+      required:
+        - name
+        - id
+        - subdomain
+        - features
+      properties:
+        name:
+          type: string
+        id:
+          type: string
+          format: uuid
+        subdomain:
+          type: string
+        features:
+          $ref: "#/components/schemas/OrganizationFeatures"
+
+    OrganizationWithRedirect:
+      type: object
+      required:
+        - organization
+        - redirect_to
+      properties:
+        organization:
+          $ref: "#/components/schemas/Organization"
+        redirect_to:
+          type: string
+
+    Invite:
+      type: object
+      description: Object for inviting a new user to an organization
+      required:
+        - email
+        - role_definition_id
+      properties:
+        email:
+          type: string
+          example: user@example.com
+        role_definition_id:
+          $ref: "#/components/schemas/RoleDefinitionId"
+
+    # ---------- SDK Generation ----------
+
+    SdkGeneration:
+      type: object
+      required:
+        - language
+        - name
+        - version
+        - api_version_id
+        - successful
+        - created_at
+      properties:
+        language:
+          $ref: "#/components/schemas/SdkLanguage"
+        name:
+          type: string
+          description: Package name of generated sdks
+          example: my_sdk_py
+        version:
+          $ref: "#/components/schemas/Semver"
+        api_version_id:
+          type: string
+          format: uuid
+        successful:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+
+    SdkConfig:
+      type: string
+      format: binary
+      description: SDK configuration file in .yaml format
+      example: uploads/config.yaml
+
+    NewSdk:
+      type: object
+      required:
+        - config
+        - language
+      properties:
+        config:
+          $ref: "#/components/schemas/SdkConfig"
+        language:
+          $ref: "#/components/schemas/SdkLanguage"
+        api_version:
+          $ref: "#/components/schemas/ApiVersion"
+        sdk_version:
+          $ref: "#/components/schemas/Semver"
+        github_actions:
+          type: boolean
+          default: false
+          description: include github action boilerplate for running tests and publishing the sdk
+
+    UpdateSdk:
+      type: object
+      required:
+        - prev_sdk_id
+        - prev_sdk_git
+        - sdk_version
+        - config
+      properties:
+        prev_sdk_id:
+          type: string
+          format: uuid
+        prev_sdk_git:
+          type: string
+          format: binary
+          description: compressed .tar.gz of .git/ directory of previous SDK
+          example: uploads/git.tar.gz
+        sdk_version:
+          $ref: "#/components/schemas/VersionOrBump"
+        config:
+          $ref: "#/components/schemas/SdkConfig"
+        api_version:
+          $ref: "#/components/schemas/ApiVersion"
+
+    InitSdkConfig:
+      type: object
+      required:
+        - api_name
+      properties:
+        api_name:
+          $ref: "#/components/schemas/ProjectName"
+        api_version:
+          $ref: "#/components/schemas/ApiVersion"
+        customizations:
+          $ref: "#/components/schemas/ConfigCustomizations"
+
+    SyncSdkConfig:
+      type: object
+      required:
+        - config
+      properties:
+        config:
+          $ref: "#/components/schemas/SdkConfig"
+        openapi:
+          type: string
+          format: binary
+          description: Use api_version in typical use. If this field is supplied, the configuration sync will match the spec rather than any API that lives in Sideko.
+          example: uploads/openapi.yaml
+        api_version:
+          description: If this not specified and openapi is not used, the latest API version in Sideko will be used. Pre-release versions will not be used by default.
+          $ref: "#/components/schemas/ApiVersion"
+        customizations:
+          $ref: "#/components/schemas/ConfigCustomizations"
+
+    ConfigCustomizations:
+      type: string
+      enum:
+        - x-field
+        - config
+
+    SdkLanguage:
+      type: string
+      description: Programming languages available for SDK generation
+      enum:
+        - python
+        - go
+        - rust
+        - typescript
+        - java
+
+    SdkDocRequest:
+      type: object
+      properties:
+        modules_filter:
+          type: array
+          description: Optional array of module names to filter the response
+          items:
+            type: string
+          example: ["user.admin"]
+    SdkDocResponse:
+      type: object
+      required:
+        - client_init
+        - modules
+      properties:
+        client_init:
+          type: string
+          description: Client initialization code
+          example: "def x"
+        modules:
+          type: array
+          description: Array of module documentation objects
+          items:
+            $ref: '#/components/schemas/ModuleDoc'
+    ModuleDoc:
+      type: object
+      required:
+        - module
+        - content
+      properties:
+        module:
+          type: string
+          description: Module name/identifier
+          example: "user.admin"
+        content:
+          type: string
+          description: Markdown content with documentation for the module
+          example: "## Markdown SDK Docs"
+    # ---------- CLI ----------
+    CliUpdate:
+      type: object
+      required:
+        - severity
+        - message
+      properties:
+        severity:
+          $ref: "#/components/schemas/CliUpdateSeverity"
+        message:
+          type: string
+          example: Requires update to 0.2.0 for security patch
+
+    CliUpdateSeverity:
+      type: string
+      enum:
+        - info
+        - suggested
+        - required
+
+    # ---------- Documentation Generation ----------
+    DeploymentTarget:
+      type: string
+      enum:
+        - Production
+        - Preview
+
+    NewDeployment:
+      type: object
+      required:
+        - target
+      properties:
+        doc_version_id:
+          type: string
+          format: uuid
+        target:
+          $ref: "#/components/schemas/DeploymentTarget"
+
+    DeploymentStatus:
+      type: string
+      enum:
+        - Building
+        - Cancelled
+        - Complete
+        - Created
+        - Error
+        - Generated
+
+    Deployment:
+      type: object
+      required:
+        - id
+        - doc_version
+        - status
+        - target
+        - current_prod
+        - current_preview
+        - metadata
+        - created_at
+      properties:
+        id:
+          type: string
+        doc_version:
+          $ref: "#/components/schemas/DocVersion"
+        status:
+          $ref: "#/components/schemas/DeploymentStatus"
+        target:
+          $ref: "#/components/schemas/DeploymentTarget"
+        current_prod:
+          type: boolean
+        current_preview:
+          type: boolean
+        metadata:
+          type: object
+          description: an object describing the guides, api links, and theming included in the triggered deployment
+        created_at:
+          type: string
+          format: date-time
+    DocPreviewPassword:
+      type: object
+      required:
+        - name
+        - password
+      properties:
+        name:
+          type: string
+          example: "My customer preview"
+        password:
+          type: string
+          example: "asdfj12124inklwgas123"
+    DocPreviewPasswordName:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          example: "My customer preview"
+    # ---------- Documentation Theming ----------
+    Theme:
+      type: object
+      required:
+        - values
+        - owner
+      properties:
+        values:
+          $ref: "#/components/schemas/ThemeValues"
+        owner:
+          type: string
+          enum:
+            - default
+            - self
+            - organization
+
+    ThemeValues:
+      type: object
+      properties:
+        light_bg_color:
+          type: [string, "null"]
+          description: in HEX format
+          example: "#FFFFFF"
+        dark_bg_color:
+          type: [string, "null"]
+          description: in HEX format
+          example: "#FFFFFF"
+        light_active_button_bg_color:
+          type: [string, "null"]
+          description: in HEX format
+          example: "#FFFFFF"
+        dark_active_button_bg_color:
+          type: [string, "null"]
+          description: in HEX format
+          example: "#FFFFFF"
+        light_active_button_text_color:
+          type: [string, "null"]
+          description: in HEX format
+          example: "#FFFFFF"
+        dark_active_button_text_color:
+          type: [string, "null"]
+          description: in HEX format
+          example: "#FFFFFF"
+        light_navbar_color:
+          type: [string, "null"]
+          description: in HEX format
+          example: "#FFFFFF"
+        dark_navbar_color:
+          type: [string, "null"]
+          description: in HEX format
+          example: "#FFFFFF"
+        light_navbar_text_color:
+          type: [string, "null"]
+          description: in HEX format
+          example: "#FFFFFF"
+        dark_navbar_text_color:
+          type: [string, "null"]
+          description: in HEX format
+          example: "#FFFFFF"
+        api_reference_group_variant:
+          type: [string, "null"]
+          description: set a group variant to collapse all of references under one dropdown in the sidebar
+          example: "grouped"
+
+    # ---------- Roles/Permissions ----------
+    Role:
+      type: object
+      required:
+        - id
+        - user
+        - definition
+        - object_type
+        - object_id
+      properties:
+        id:
+          type: string
+          format: uuid
+        user:
+          $ref: "#/components/schemas/User"
+        definition:
+          $ref: "#/components/schemas/RoleDefinition"
+        object_type:
+          $ref: "#/components/schemas/ObjectType"
+        object_id:
+          type: string
+          format: uuid
+          description: The unique identifier of the Sideko object
+
+    NewRole:
+      type: object
+      required:
+        - user_id
+        - role_definition_id
+        - object_type
+        - object_id
+      properties:
+        user_id:
+          type: string
+          format: uuid
+          description: unique identifier for the user that the role will be granted to
+        role_definition_id:
+          $ref: "#/components/schemas/RoleDefinitionId"
+        object_type:
+          $ref: "#/components/schemas/ObjectType"
+        object_id:
+          type: string
+          format: uuid
+          description: The unique identifier of the Sideko object
+
+    RoleDefinition:
+      type: object
+      required:
+        - id
+        - display_name
+        - actions
+      properties:
+        id:
+          $ref: "#/components/schemas/RoleDefinitionId"
+        display_name:
+          type: string
+          example: Org Admin
+        actions:
+          type: array
+          items:
+            $ref: "#/components/schemas/Action"
+
+    ObjectType:
+      type: string
+      description: The object types that roles can be assigned to.
+      enum:
+        - organization
+        - api_project
+        - doc_project
+
+    RoleDefinitionId:
+      type: string
+      enum:
+        - ApiProjectAdmin
+        - ApiProjectContributor
+        - ApiProjectViewer
+        - DocProjectAdmin
+        - DocProjectContributor
+        - DocProjectViewer
+        - OrganizationAdmin
+        - OrganizationManager
+        - OrganizationMember
+
+    Action:
+      type: string
+      enum:
+        - api_project_delete
+        - api_project_read
+        - api_project_update
+        - api_project_version_create
+        - api_project_version_delete
+        - api_project_version_read
+        - api_project_version_update
+        - audit_log_read
+        - doc_project_delete
+        - doc_project_publish_preview
+        - doc_project_publish_production
+        - doc_project_read
+        - doc_project_update
+        - doc_project_version_read
+        - doc_project_version_update
+        - organization_create_api_project
+        - organization_create_doc_project
+        - organization_read_theme
+        - organization_update_theme
+        - role_create
+        - role_delete
+        - role_read
+
+    # ---------- Shared ----------
+    Pagination:
+      type: object
+      required:
+        - page
+        - page_count
+        - page_limit
+        - total_count
+      properties:
+        page:
+          type: integer
+          description: current page
+        page_count:
+          type: integer
+          description: total number of pages
+        page_limit:
+          type: integer
+          description: maximum number of results per page
+        total_count:
+          type: integer
+          description: total number of results across all pages
+
+    # ---------- Errors ----------
+    Error:
+      type: object
+      required:
+        - error
+        - description
+        - request_id
+      properties:
+        error:
+          type: string
+          enum:
+            - bad_request
+            - unauthorized
+            - forbidden
+            - not_found
+            - internal
+        description:
+          type: string
+          description: describes what went wrong
+        request_id:
+          type: string
+          format: uuid
+
+    LintErrorDetails:
+      type: object
+      description: Describes the problems found by the Sideko OpenAPI linter
+      required:
+        - path
+        - method
+        - location
+        - message
+      properties:
+        path:
+          type: string
+          example: "/api/v1/path"
+        method:
+          type: string
+          example: GET
+        location:
+          type: [string, "null"]
+          example: request-body
+        message:
+          type: [string, "null"]
+          example: the object is missing a required property

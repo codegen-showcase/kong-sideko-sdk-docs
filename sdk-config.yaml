@@ -1,0 +1,507 @@
+api:
+  - name: sideko-api
+    path: sideko
+  - name: kong-portal-mgmt
+    path: kong_portal
+  - name: kong-api-builder
+    path: kong_builder
+languages:
+  python:
+    sdk_name: sideko_kong_sdk_docs
+servers:
+  # Sideko
+  - url: https://api.sideko.dev/v1
+    name: sideko_prod
+    default: true
+    api: sideko-api
+    group: default
+  - url: https://us.api.konghq.com/v3
+    name: kong_us
+    default: true
+    api: kong-portal-mgmt
+    group: default
+  # Kong Portal Management
+  - url: https://eu.api.konghq.com/v3
+    name: kong_eu
+    api: kong-portal-mgmt
+  - url: https://au.api.konghq.com/v3
+    name: kong_au
+    api: kong-portal-mgmt
+  - url: https://me.api.konghq.com/v3
+    name: kong_me
+    api: kong-portal-mgmt
+  - url: https://in.api.konghq.com/v3
+    name: kong_in
+    api: kong-portal-mgmt
+  # Kong API Builder
+  - url: https://us.api.konghq.com/v3
+    name: kong_us
+    default: true
+    api: kong-api-builder
+    group: default
+  - url: https://eu.api.konghq.com/v3
+    name: kong_eu
+    api: kong-api-builder
+  - url: https://au.api.konghq.com/v3
+    name: kong_au
+    api: kong-api-builder
+  - url: https://me.api.konghq.com/v3
+    name: kong_me
+    api: kong-api-builder
+  - url: https://in.api.konghq.com/v3
+    name: kong_in
+    api: kong-api-builder
+
+auths:
+  - id: ApiKeyAuth
+    param: sideko_key
+  - id: CookieAuth
+    param: sideko_cookie
+  - id: personalAccessToken
+    param: kong_pat
+  - id: systemAccountAccessToken
+    param: kong_sys_token
+modules:
+  # SIDEKO TOP LEVEL MODULE
+  - path: sideko.api
+    operations:
+      - id: sideko-api.create_api
+        function_name: create
+      - id: sideko-api.delete_api
+        function_name: delete
+      - id: sideko-api.get_api
+        function_name: get
+      - id: sideko-api.list_apis
+        function_name: list
+      - id: sideko-api.new_api_init
+        function_name: init
+      - id: sideko-api.update_api_spec_collection
+        function_name: patch
+  - path: sideko.api.spec
+    operations:
+      - id: sideko-api.delete_specification
+        function_name: delete
+      - id: sideko-api.get_api_spec_openapi
+        function_name: get_openapi
+      - id: sideko-api.get_api_spec_stats
+        function_name: get_stats
+      - id: sideko-api.get_specification_metadata
+        function_name: get
+      - id: sideko-api.list_api_specs
+        function_name: list
+      - id: sideko-api.new_specification
+        function_name: create
+      - id: sideko-api.update_specification
+        function_name: patch
+  - path: sideko.api_link
+    operations:
+      - id: sideko-api.create_api_link
+        function_name: create
+      - id: sideko-api.delete_api_link
+        function_name: delete
+      - id: sideko-api.get_api_link
+        function_name: get
+      - id: sideko-api.list_api_links
+        function_name: list
+      - id: sideko-api.reorder_api_links
+        function_name: reorder
+      - id: sideko-api.update_api_link
+        function_name: patch
+  - path: sideko.api_link.group
+    operations:
+      - id: sideko-api.create_api_link_group
+        function_name: create
+      - id: sideko-api.delete_api_link_group
+        function_name: delete
+      - id: sideko-api.list_api_link_groups
+        function_name: list
+      - id: sideko-api.update_api_link_group
+        function_name: patch
+  - path: sideko.asset
+    operations:
+      - id: sideko-api.delete_asset
+        function_name: delete
+      - id: sideko-api.list_assets
+        function_name: list
+      - id: sideko-api.update_asset
+        function_name: patch
+      - id: sideko-api.upload_assets
+        function_name: create
+  - path: sideko.auth
+    operations:
+      - id: sideko-api.exchange_code_for_key
+        function_name: exchange_code
+      - id: sideko-api.login_callback
+        function_name: login_callback
+      - id: sideko-api.login_url
+        function_name: login_url
+  - path: sideko.cli
+    operations:
+      - id: sideko-api.cli_check_updates
+        function_name: check_updates
+  - path: sideko.doc
+    operations:
+      - id: sideko-api.check_preview
+        function_name: check_preview
+      - id: sideko-api.create_doc_project
+        function_name: create
+      - id: sideko-api.delete_doc_project
+        function_name: delete
+      - id: sideko-api.get_doc_project
+        function_name: get
+      - id: sideko-api.list_doc_projects
+        function_name: list
+      - id: sideko-api.update_doc_project
+        function_name: patch
+  - path: sideko.doc.deployment
+    operations:
+      - id: sideko-api.get_deployment
+        function_name: get
+      - id: sideko-api.list_deployments
+        function_name: list
+      - id: sideko-api.trigger_deployment
+        function_name: trigger
+  - path: sideko.doc.preview
+    operations:
+      - id: sideko-api.create_doc_proj_preview_password
+        function_name: create_password
+      - id: sideko-api.delete_doc_proj_preview_password
+        function_name: delete_password
+      - id: sideko-api.list_doc_proj_preview_passwords
+        function_name: list_passwords
+  - path: sideko.doc.theme
+    operations:
+      - id: sideko-api.get_doc_project_theme
+        function_name: get
+      - id: sideko-api.update_doc_project_theme
+        function_name: update
+  - path: sideko.doc.version
+    operations:
+      - id: sideko-api.get_doc_version
+        function_name: get
+      - id: sideko-api.list_doc_versions
+        function_name: list
+  - path: sideko.doc.version.guide
+    operations:
+      - id: sideko-api.create_guide
+        function_name: create
+      - id: sideko-api.delete_guide
+        function_name: delete
+      - id: sideko-api.get_guide
+        function_name: get
+      - id: sideko-api.get_guide_content
+        function_name: get_content
+      - id: sideko-api.list_guides
+        function_name: list
+      - id: sideko-api.reorder_guides
+        function_name: reorder
+      - id: sideko-api.update_guide
+        function_name: patch
+  - path: sideko.health
+    operations:
+      - id: sideko-api.health_check
+        function_name: check
+      - id: sideko-api.ping_check
+        function_name: ping
+  - path: sideko.lint
+    operations:
+      - id: sideko-api.lint_api_spec
+        function_name: run
+  - path: sideko.org
+    operations:
+      - id: sideko-api.create_organization
+        function_name: create
+      - id: sideko-api.get_organization
+        function_name: get
+  - path: sideko.org.theme
+    operations:
+      - id: sideko-api.get_organization_theme
+        function_name: get
+      - id: sideko-api.update_organization_theme
+        function_name: update
+  - path: sideko.role
+    operations:
+      - id: sideko-api.create_role
+        function_name: create
+      - id: sideko-api.delete_role
+        function_name: delete
+      - id: sideko-api.list_roles
+        function_name: list
+  - path: sideko.sdk
+    operations:
+      - id: sideko-api.generate_sdk
+        function_name: generate
+      - id: sideko-api.list_sdks
+        function_name: list
+      - id: sideko-api.update_sdk
+        function_name: update
+  - path: sideko.sdk.config
+    operations:
+      - id: sideko-api.init_sdk_config
+        function_name: init
+      - id: sideko-api.sync_sdk_config
+        function_name: sync
+  - path: sideko.sdk.doc
+    operations:
+      - id: sideko-api.get_sdk_docs
+        function_name: create
+  - path: sideko.service_account
+    operations:
+      - id: sideko-api.create_service_account
+        function_name: create
+      - id: sideko-api.delete_service_account
+        function_name: delete
+      - id: sideko-api.get_service_account
+        function_name: get
+      - id: sideko-api.list_service_accounts
+        function_name: list
+  - path: sideko.user
+    operations:
+      - id: sideko-api.invite_user
+        function_name: invite
+  - path: sideko.user.me
+    operations:
+      - id: sideko-api.get_api_key
+        function_name: get_key
+      - id: sideko-api.get_current_user
+        function_name: get
+  - path: sideko.webhook
+    operations:
+      - id: sideko-api.vercel_webhook
+        function_name: vercel
+  # KONG PORTAL TOP LEVEL MODULE
+  - path: kong_portal.applications
+    operations:
+      - id: kong-portal-mgmt.get-application-unscoped
+        function_name: get
+  - path: kong_portal.portal_roles
+    operations:
+      - id: kong-portal-mgmt.list-portal-roles
+        function_name: list
+  - path: kong_portal.portals
+    operations:
+      - id: kong-portal-mgmt.create-portal
+        function_name: create
+      - id: kong-portal-mgmt.delete-portal
+        function_name: delete
+      - id: kong-portal-mgmt.get-portal
+        function_name: get
+      - id: kong-portal-mgmt.list-portals
+        function_name: list
+      - id: kong-portal-mgmt.update-portal
+        function_name: patch
+  - path: kong_portal.portals.application_registrations
+    operations:
+      - id: kong-portal-mgmt.list-registrations
+        function_name: list
+  - path: kong_portal.portals.applications
+    operations:
+      - id: kong-portal-mgmt.delete-application
+        function_name: delete
+      - id: kong-portal-mgmt.get-application
+        function_name: get
+      - id: kong-portal-mgmt.list-applications
+        function_name: list
+  - path: kong_portal.portals.applications.registrations
+    operations:
+      - id: kong-portal-mgmt.delete-application-registration
+        function_name: delete
+      - id: kong-portal-mgmt.get-application-registration
+        function_name: get
+      - id: kong-portal-mgmt.list-registrations-by-application
+        function_name: list
+      - id: kong-portal-mgmt.update-application-registration
+        function_name: patch
+  - path: kong_portal.portals.assets.favicon
+    operations:
+      - id: kong-portal-mgmt.get-portal-asset-favicon
+        function_name: list
+      - id: kong-portal-mgmt.replace-portal-asset-favicon
+        function_name: update
+  - path: kong_portal.portals.assets.logo
+    operations:
+      - id: kong-portal-mgmt.get-portal-asset-logo
+        function_name: list
+      - id: kong-portal-mgmt.replace-portal-asset-logo
+        function_name: update
+  - path: kong_portal.portals.authentication_settings
+    operations:
+      - id: kong-portal-mgmt.get-portal-authentication-settings
+        function_name: list
+      - id: kong-portal-mgmt.update-portal-authentication-settings
+        function_name: patch
+  - path: kong_portal.portals.custom_domain
+    operations:
+      - id: kong-portal-mgmt.create-portal-custom-domain
+        function_name: create
+      - id: kong-portal-mgmt.delete-portal-custom-domain
+        function_name: delete
+      - id: kong-portal-mgmt.get-portal-custom-domain
+        function_name: list
+      - id: kong-portal-mgmt.update-portal-custom-domain
+        function_name: patch
+  - path: kong_portal.portals.customization
+    operations:
+      - id: kong-portal-mgmt.get-portal-customization
+        function_name: list
+      - id: kong-portal-mgmt.replace-portal-customization
+        function_name: update
+      - id: kong-portal-mgmt.update-portal-customization
+        function_name: patch
+  - path: kong_portal.portals.default_content
+    operations:
+      - id: kong-portal-mgmt.create-default-content
+        function_name: create
+  - path: kong_portal.portals.developers
+    operations:
+      - id: kong-portal-mgmt.delete-developer
+        function_name: delete
+      - id: kong-portal-mgmt.get-developer
+        function_name: get
+      - id: kong-portal-mgmt.list-portal-developers
+        function_name: list
+      - id: kong-portal-mgmt.update-developer
+        function_name: patch
+  - path: kong_portal.portals.developers.teams
+    operations:
+      - id: kong-portal-mgmt.list-portal-developer-teams
+        function_name: list
+  - path: kong_portal.portals.identity_provider.team_group_mappings
+    operations:
+      - id: kong-portal-mgmt.list-portal-team-group-mappings
+        function_name: list
+      - id: kong-portal-mgmt.update-portal-team-group-mappings
+        function_name: patch
+  - path: kong_portal.portals.identity_providers
+    operations:
+      - id: kong-portal-mgmt.create-portal-identity-provider
+        function_name: create
+      - id: kong-portal-mgmt.delete-portal-identity-provider
+        function_name: delete
+      - id: kong-portal-mgmt.get-portal-identity-provider
+        function_name: get
+      - id: kong-portal-mgmt.get-portal-identity-providers
+        function_name: list
+      - id: kong-portal-mgmt.update-portal-identity-provider
+        function_name: patch
+  - path: kong_portal.portals.pages
+    operations:
+      - id: kong-portal-mgmt.create-portal-page
+        function_name: create
+      - id: kong-portal-mgmt.delete-portal-page
+        function_name: delete
+      - id: kong-portal-mgmt.get-portal-page
+        function_name: get
+      - id: kong-portal-mgmt.list-portal-pages
+        function_name: list
+      - id: kong-portal-mgmt.update-portal-page
+        function_name: patch
+  - path: kong_portal.portals.pages.move
+    operations:
+      - id: kong-portal-mgmt.move-portal-pages
+        function_name: update
+  - path: kong_portal.portals.snippets
+    operations:
+      - id: kong-portal-mgmt.create-portal-snippet
+        function_name: create
+      - id: kong-portal-mgmt.delete-portal-snippet
+        function_name: delete
+      - id: kong-portal-mgmt.get-portal-snippet
+        function_name: get
+      - id: kong-portal-mgmt.list-portal-snippets
+        function_name: list
+      - id: kong-portal-mgmt.update-portal-snippet
+        function_name: patch
+  - path: kong_portal.portals.teams
+    operations:
+      - id: kong-portal-mgmt.create-portal-team
+        function_name: create
+      - id: kong-portal-mgmt.delete-portal-team
+        function_name: delete
+      - id: kong-portal-mgmt.get-portal-team
+        function_name: get
+      - id: kong-portal-mgmt.list-portal-teams
+        function_name: list
+      - id: kong-portal-mgmt.update-portal-team
+        function_name: patch
+  - path: kong_portal.portals.teams.assigned_roles
+    operations:
+      - id: kong-portal-mgmt.assign-role-to-portal-teams
+        function_name: create
+      - id: kong-portal-mgmt.list-portal-team-roles
+        function_name: list
+      - id: kong-portal-mgmt.remove-role-from-portal-team
+        function_name: remove
+  - path: kong_portal.portals.teams.developers
+    operations:
+      - id: kong-portal-mgmt.add-developer-to-portal-team
+        function_name: add
+      - id: kong-portal-mgmt.list-portal-team-developers
+        function_name: list
+      - id: kong-portal-mgmt.remove-developer-from-portal-team
+        function_name: remove
+  # KONG API BUILDER TOP LEVEL MODULE
+  - path: kong_builder.api_implementations
+    operations:
+      - id: kong-api-builder.list-api-implementations
+        function_name: list
+  - path: kong_builder.api_publications
+    operations:
+      - id: kong-api-builder.list-api-publications
+        function_name: list
+  - path: kong_builder.apis
+    operations:
+      - id: kong-api-builder.create-api
+        function_name: create
+      - id: kong-api-builder.delete-api
+        function_name: delete
+      - id: kong-api-builder.fetch-api
+        function_name: get
+      - id: kong-api-builder.list-apis
+        function_name: list
+      - id: kong-api-builder.update-api
+        function_name: patch
+  - path: kong_builder.apis.documents
+    operations:
+      - id: kong-api-builder.create-api-document
+        function_name: create
+      - id: kong-api-builder.delete-api-document
+        function_name: delete
+      - id: kong-api-builder.fetch-api-document
+        function_name: get
+      - id: kong-api-builder.list-api-documents
+        function_name: list
+      - id: kong-api-builder.update-api-document
+        function_name: patch
+  - path: kong_builder.apis.documents.move
+    operations:
+      - id: kong-api-builder.move-api-document
+        function_name: move
+  - path: kong_builder.apis.implementations
+    operations:
+      - id: kong-api-builder.create-api-implementation
+        function_name: create
+      - id: kong-api-builder.delete-api-implementation
+        function_name: delete
+      - id: kong-api-builder.fetch-api-implementation
+        function_name: get
+  - path: kong_builder.apis.publications
+    operations:
+      - id: kong-api-builder.delete-publication
+        function_name: delete
+      - id: kong-api-builder.fetch-publication
+        function_name: get
+      - id: kong-api-builder.publish-api-to-portal
+        function_name: publish_to_portal
+  - path: kong_builder.apis.specifications
+    operations:
+      - id: kong-api-builder.create-api-spec
+        function_name: create
+      - id: kong-api-builder.delete-api-spec
+        function_name: delete
+      - id: kong-api-builder.fetch-api-spec
+        function_name: get
+      - id: kong-api-builder.list-api-specs
+        function_name: list
+      - id: kong-api-builder.update-api-spec
+        function_name: patch
