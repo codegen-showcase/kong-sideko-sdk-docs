@@ -24,3 +24,4 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.scripts]
 sync-sdk-docs = "sideko_kong_sdk_docs.sync_sdk_docs:main"
+sync-sdk = "sideko_kong_sdk_docs.sync_sdk:main"

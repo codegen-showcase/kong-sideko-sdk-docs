@@ -1,8 +1,31 @@
 
-# Sideko REST API Python SDK
+# Kong / Sideko SDK Docs Integration
 
 ## Overview
-The Sideko API unlocks features including generating SDKs, setting up API Specifications with mock servers, creating documentation projects with generated API references and custom pages, managing roles and permissions, and more.
+
+
+### CLI Usage
+`poetry install`
+
+#### Sync SDK Docs With Portal
+```bash
+poetry run sync-sdk-docs \
+    --sideko-key "xxx"   \
+    --kong-pat "xxx"     \
+    --portal-id "4f3d97b8-9e41-46f6-b85f-e43630f5375a" \
+    --sdk-root-page-slug "/python" \
+    --nav-snippet-name "python-sdk-navigation" \
+    --sideko-sdk-id "8bc68a39-87b5-46db-b0d3-502d9c70b1ae"
+```
+
+#### (COMING SOON) Listen and Sync Latest Kong API Specs with SDK by API-ID
+```bash
+poetry run sync-sdk \
+    --sideko-key "xxx"   \
+    --kong-pat "xxx"     \
+    --api-id "4f3d97b8-9e41-46f6-b85f-e43630f5375a" 
+```
+
 
 #### Synchronous Client
 

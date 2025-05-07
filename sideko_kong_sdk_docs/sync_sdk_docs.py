@@ -200,12 +200,12 @@ def main() -> None:
     parser.add_argument(
         "--sideko-key",
         required=True,
-        help="Kong API specification ID (triggered with a polling script or future Kong webhook)",
+        help="Sideko API Key",
     )
     parser.add_argument(
         "--kong-pat",
         required=True,
-        help="Kong API ID",
+        help="Kong Personal API Token",
     )
     parser.add_argument(
         "--portal-id",
@@ -215,7 +215,7 @@ def main() -> None:
     parser.add_argument(
         "--sdk-root-page-slug",
         required=True,
-        help="Kong Portal Page ID of the root for SDKs",
+        help="Kong Portal Page slug of the root for SDK docs",
     )
     parser.add_argument(
         "--nav-snippet-name",
