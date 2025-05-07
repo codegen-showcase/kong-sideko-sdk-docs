@@ -16,9 +16,7 @@ class PortalPageResponse(pydantic.BaseModel):
 
     __pydantic_extra__: typing.Dict[str, typing.Any]
 
-    content: str = pydantic.Field(
-        alias="content",
-    )
+    content: typing.Optional[str] = pydantic.Field(alias="content", default=None)
     """
     The renderable markdown content of a page in a portal.
     """

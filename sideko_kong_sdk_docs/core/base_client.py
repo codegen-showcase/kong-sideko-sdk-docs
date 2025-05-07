@@ -11,7 +11,7 @@ from typing import (
 from typing_extensions import TypeGuard
 
 import httpx
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 
 from .api_error import ApiError
 from .auth import AuthProvider
@@ -322,9 +322,15 @@ class BaseClient:
         if response_type == "json":
             if cast_to is type(Any):
                 return response.json()
-            return from_encodable(
-                data=response.json(), load_with=filter_binary_response(cast_to=cast_to)
-            )
+            json_response = response.json()
+            try:
+                return from_encodable(
+                    data=json_response,
+                    load_with=filter_binary_response(cast_to=cast_to),
+                )
+            except ValidationError as ve:
+                print(f"raw result: {json_response}")
+                raise ValidationError(ve)
         elif response_type == "text":
             return cast(T, response.text)
         else:

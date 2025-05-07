@@ -23,4 +23,4 @@ requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.scripts]
-kong-sdk-docs = "sideko_kong_sdk_docs.cli:main"
+sync-sdk-docs = "sideko_kong_sdk_docs.sync_sdk_docs:main"

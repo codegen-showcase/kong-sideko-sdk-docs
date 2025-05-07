@@ -3,8 +3,6 @@ api:
     path: sideko
   - name: kong-portal-mgmt
     path: kong_portal
-  - name: kong-api-builder
-    path: kong_builder
 languages:
   python:
     sdk_name: sideko_kong_sdk_docs
@@ -33,24 +31,6 @@ servers:
   - url: https://in.api.konghq.com/v3
     name: kong_in
     api: kong-portal-mgmt
-  # Kong API Builder
-  - url: https://us.api.konghq.com/v3
-    name: kong_us
-    default: true
-    api: kong-api-builder
-    group: default
-  - url: https://eu.api.konghq.com/v3
-    name: kong_eu
-    api: kong-api-builder
-  - url: https://au.api.konghq.com/v3
-    name: kong_au
-    api: kong-api-builder
-  - url: https://me.api.konghq.com/v3
-    name: kong_me
-    api: kong-api-builder
-  - url: https://in.api.konghq.com/v3
-    name: kong_in
-    api: kong-api-builder
 
 auths:
   - id: ApiKeyAuth
@@ -440,68 +420,3 @@ modules:
         function_name: list
       - id: kong-portal-mgmt.remove-developer-from-portal-team
         function_name: remove
-  # KONG API BUILDER TOP LEVEL MODULE
-  - path: kong_builder.api_implementations
-    operations:
-      - id: kong-api-builder.list-api-implementations
-        function_name: list
-  - path: kong_builder.api_publications
-    operations:
-      - id: kong-api-builder.list-api-publications
-        function_name: list
-  - path: kong_builder.apis
-    operations:
-      - id: kong-api-builder.create-api
-        function_name: create
-      - id: kong-api-builder.delete-api
-        function_name: delete
-      - id: kong-api-builder.fetch-api
-        function_name: get
-      - id: kong-api-builder.list-apis
-        function_name: list
-      - id: kong-api-builder.update-api
-        function_name: patch
-  - path: kong_builder.apis.documents
-    operations:
-      - id: kong-api-builder.create-api-document
-        function_name: create
-      - id: kong-api-builder.delete-api-document
-        function_name: delete
-      - id: kong-api-builder.fetch-api-document
-        function_name: get
-      - id: kong-api-builder.list-api-documents
-        function_name: list
-      - id: kong-api-builder.update-api-document
-        function_name: patch
-  - path: kong_builder.apis.documents.move
-    operations:
-      - id: kong-api-builder.move-api-document
-        function_name: move
-  - path: kong_builder.apis.implementations
-    operations:
-      - id: kong-api-builder.create-api-implementation
-        function_name: create
-      - id: kong-api-builder.delete-api-implementation
-        function_name: delete
-      - id: kong-api-builder.fetch-api-implementation
-        function_name: get
-  - path: kong_builder.apis.publications
-    operations:
-      - id: kong-api-builder.delete-publication
-        function_name: delete
-      - id: kong-api-builder.fetch-publication
-        function_name: get
-      - id: kong-api-builder.publish-api-to-portal
-        function_name: publish_to_portal
-  - path: kong_builder.apis.specifications
-    operations:
-      - id: kong-api-builder.create-api-spec
-        function_name: create
-      - id: kong-api-builder.delete-api-spec
-        function_name: delete
-      - id: kong-api-builder.fetch-api-spec
-        function_name: get
-      - id: kong-api-builder.list-api-specs
-        function_name: list
-      - id: kong-api-builder.update-api-spec
-        function_name: patch
