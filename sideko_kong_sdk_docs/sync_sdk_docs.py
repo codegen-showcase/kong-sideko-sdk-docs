@@ -13,7 +13,7 @@ import sys
 import typing
 
 from sideko_kong_sdk_docs import Client
-from sideko_kong_sdk_docs.types.models import ListPortalPagesResponse
+from sideko_kong_sdk_docs.types.models import PortalPageResponse
 
 
 def process_kong_api(
@@ -46,7 +46,7 @@ def process_kong_api(
     )
 
     # Function to recursively collect all pages and their children
-    def collect_all_pages(pages_list) -> typing.List[ListPortalPagesResponse]:
+    def collect_all_pages(pages_list) -> typing.List[PortalPageResponse]:
         all_pages = []
 
         def process_page(page):
@@ -241,4 +241,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(main())  # type: ignore
